@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SemCanvas AI</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">SC</span>
+        <div>
+          <strong>SemCanvas AI</strong>
+          <small>semantic AI image editing</small>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="status-pill">
+          <span id="statusDot" class="dot idle"></span>
+          <div>
+            <strong id="statusTitle">Ready</strong>
+            <small id="statusText">加载图片后筛选区域，再提交修改。</small>
+          </div>
+        </div>
+        <button id="refreshNowBtn" class="button ghost" type="button">刷新</button>
+        <label class="toggle">
+          <input id="autoRefreshToggle" type="checkbox" checked>
+          <span>自动刷新</span>
+        </label>
+      </div>
+    </header>
+
+    <section class="studio-grid">
+      <aside class="side-panel left-panel">
+        <section class="tool-card">
+          <div class="card-head">
+            <span class="step">01</span>
+            <div>
+              <h2>创建或载入</h2>
+              <p>生成、上传或继续编辑已有版本。</p>
+            </div>
+          </div>
+          <textarea id="generatePrompt" rows="4" placeholder="例如：一只边牧站在金色草地里，真实摄影，浅景深"></textarea>
+          <div class="option-grid">
+            <label>
+              <span>图片比例</span>
+              <select id="aspectRatio">
+                <option value="1:1">1:1 Square</option>
+                <option value="16:9">16:9 Landscape</option>
+                <option value="4:3">4:3 Classic</option>
+                <option value="3:4">3:4 Portrait</option>
+                <option value="9:16">9:16 Vertical</option>
+              </select>
+            </label>
+            <label>
+              <span>风格</span>
+              <select id="stylePreset">
+                <option value="photo">真实摄影</option>
+                <option value="cinematic">电影剧照</option>
+                <option value="product">商业产品</option>
+                <option value="illustration">现代插画</option>
+                <option value="anime">动漫概念</option>
+              </select>
+            </label>
+          </div>
+          <div class="provider-panel">
+            <div class="provider-head">
+              <strong>模型接口</strong>
+              <small id="providerHint">默认使用本地 Codex CLI，也可接 GPT Image 或自定义服务。</small>
+            </div>
+            <div class="option-grid provider-grid">
+              <label>
+                <span>Provider</span>
+                <select id="providerSelect">
+                  <option value="codex">Codex CLI</option>
+                  <option value="openai">OpenAI GPT Image</option>
+                  <option value="custom">Custom HTTP</option>
+                </select>
+              </label>
+              <label>
+                <span>模型名</span>
+                <input id="providerModel" type="text" placeholder="gpt-image-1.5">
+              </label>
+            </div>
+            <label class="provider-field">
+              <span>API Endpoint</span>
+              <input id="providerEndpoint" type="url" placeholder="https://api.openai.com/v1">
+            </label>
+            <label class="provider-field">
+              <span>API Key</span>
+              <input id="providerApiKey" type="password" placeholder="留空则使用后端环境变量" autocomplete="off">
+            </label>
+          </div>
+          <button id="generateBtn" class="button primary" type="button">生成图片</button>
+          <div class="file-row">
+            <label class="upload-control">
+              <input id="uploadInput" type="file" accept="image/png,image/jpeg,image/webp">
+              <span class="upload-icon">↑</span>
+              <span class="upload-copy">
+                <strong>上传图片</strong>
+                <small id="uploadName">PNG / JPG / WebP</small>
+              </span>
+            </label>
+            <button id="sampleBtn" class="button muted sample-action" type="button">示例图</button>
+          </div>
+        </section>
+
+        <section class="tool-card">
+          <div class="card-head">
+            <span class="step">02</span>
+            <div>
+              <h2>粗选目标</h2>
+              <p>用语义分割快速定位对象，再用画笔修边。</p>
+            </div>
+          </div>
+          <div class="segmented">
+            <button id="segmentSelectBtn" class="seg" type="button">选分割</button>
+            <button id="paintBtn" class="seg active" type="button">画选区</button>
+            <button id="eraseBtn" class="seg" type="button">擦除</button>
+            <button id="clearMaskBtn" class="seg" type="button">清空</button>
+          </div>
+          <div class="segment-tools">
+            <button id="segmentBtn" class="button muted" type="button">自动分割</button>
+            <label class="mini-toggle">
+              <input id="semanticSegmentToggle" type="checkbox" checked>
+              <span>LLM 语义整理</span>
+            </label>
+            <span id="segmentStatus">载入图片后自动提取主体级区域</span>
+          </div>
+          <div id="segmentList" class="segment-list"></div>
+          <label class="range-row">
+            <span>画笔</span>
+            <input id="brushSize" type="range" min="10" max="220" value="72">
+            <output id="brushValue">72</output>
+          </label>
+        </section>
+
+        <section class="tool-card grow-card">
+          <div class="card-head">
+            <span class="step">03</span>
+            <div>
+              <h2>修改要求</h2>
+              <p>描述你想改变的对象和最终效果。</p>
+            </div>
+          </div>
+          <textarea id="feedback" rows="6" placeholder="例如：把这只黑白边牧换成金色边牧，毛发自然，保留姿势、背景和光照"></textarea>
+          <button id="editBtn" class="button primary accent" type="button">生成修改结果</button>
+        </section>
+      </aside>
+
+      <section class="workbench">
+        <article class="image-pane source-pane">
+          <div class="pane-head">
+            <div>
+              <p class="kicker">SOURCE · SEMANTIC MASK</p>
+              <h1 id="imageTitle">未加载图片</h1>
+            </div>
+            <a id="openImage" class="button ghost hidden" href="#" target="_blank" rel="noreferrer">打开原图</a>
+          </div>
+          <div id="stageViewport" class="stage-viewport">
+            <div class="zoom-control" aria-label="画板缩放">
+              <button id="zoomOutBtn" class="zoom-button" type="button" aria-label="缩小画板">−</button>
+              <button id="zoomResetBtn" class="zoom-reset" type="button">100%</button>
+              <button id="zoomInBtn" class="zoom-button" type="button" aria-label="放大画板">+</button>
+            </div>
+            <canvas id="stage"></canvas>
+            <div id="emptyState" class="empty-state">上传或生成一张图片后，在这里筛选要修改的目标。</div>
+          </div>
+          <p class="pane-note">金色区域是语义指针，不是贴图层。生成时会结合修改词、原图上下文和粗选区域做重绘。</p>
+        </article>
+
+        <article class="image-pane result-pane">
+          <div class="pane-head">
+            <div>
+              <p class="kicker">RESULT · FLATTENED OUTPUT</p>
+              <h1 id="resultTitle">等待生成结果</h1>
+            </div>
+          </div>
+          <div id="resultViewport" class="result-viewport">
+            <div class="result-actions floating-actions">
+              <a id="openResult" class="button ghost hidden" href="#" target="_blank" rel="noreferrer">打开结果</a>
+              <a id="downloadResult" class="button ghost hidden" href="#" download>下载结果</a>
+              <button id="useResultBtn" class="button muted hidden" type="button">设为原图</button>
+            </div>
+            <img id="resultImage" class="hidden" alt="生成结果">
+            <div id="resultEmpty" class="empty-state">新图片会直接显示在这里，并与原图并列比较。</div>
+          </div>
+          <p class="pane-note">输出会保持为扁平图片；可一键设为新的原图继续局部迭代。</p>
+        </article>
+      </section>
+
+      <aside class="side-panel history-panel">
+        <section class="tool-card history-card">
+          <div class="card-head split">
+            <div>
+              <h2>最近输出</h2>
+              <p>点击任意版本可载入为原图继续编辑。</p>
+            </div>
+            <button id="refreshOutputsBtn" class="icon-button" type="button">↻</button>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script src="/public/app.js" type="module"></script>
+</body>
+</html>

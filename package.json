@@ -1,0 +1,13 @@
+{
+  "name": "semcanvas-ai-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check public/app.js && python3 -m py_compile tools/*.py"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
