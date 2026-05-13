@@ -190,13 +190,13 @@ const server = createServer(async (req, res) => {
       const originalSize = await readImageSize(originalPath);
       const provider = resolveImageProvider(body.provider);
 
-      const overlayPath = await saveDataUrl(body.overlayDataUrl, TMP_DIR, 'selection-overlay.png');
       const maskPath = await saveDataUrl(body.maskDataUrl, TMP_DIR, 'selection-mask.png');
+      if (body.overlayDataUrl) await saveDataUrl(body.overlayDataUrl, TMP_DIR, 'selection-overlay.png');
+      console.info(`[edit] provider=${provider.type} source=${path.basename(originalPath)} mask=${path.basename(maskPath)} size=${originalSize.width}x${originalSize.height}`);
 
       const sourcePath = await editImageWithProvider(provider, {
         feedback,
         originalPath,
-        overlayPath,
         maskPath,
         originalSize,
       });

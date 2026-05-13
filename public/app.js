@@ -168,6 +168,33 @@ function setBusy(isBusy) {
   });
 }
 
+function formatElapsed(ms) {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (!minutes) return `${rest} 秒`;
+  return `${minutes} 分 ${String(rest).padStart(2, '0')} 秒`;
+}
+
+function startPendingTicker(title, messageForElapsed) {
+  const startedAt = Date.now();
+  let active = true;
+  const tick = () => {
+    if (!active) return;
+    const elapsed = formatElapsed(Date.now() - startedAt);
+    const message = messageForElapsed(elapsed);
+    resultTitle.textContent = title;
+    resultEmpty.textContent = message;
+    statusText.textContent = message;
+  };
+  tick();
+  const timer = setInterval(tick, 5000);
+  return () => {
+    active = false;
+    clearInterval(timer);
+  };
+}
+
 async function loadSourceImage(meta, options = {}) {
   const img = new Image();
   img.decoding = 'async';
@@ -226,6 +253,20 @@ function clearResult() {
 }
 
 function showResultPending(title, text) {
+  resultMeta = null;
+  resultTitle.textContent = title;
+  resultImage.removeAttribute('src');
+  resultImage.removeAttribute('style');
+  resultImage.classList.add('hidden');
+  resultEmpty.textContent = text;
+  resultEmpty.classList.remove('hidden');
+  openResult.classList.add('hidden');
+  downloadResult.classList.add('hidden');
+  downloadResult.removeAttribute('href');
+  useResultBtn.classList.add('hidden');
+}
+
+function showResultError(title, text) {
   resultMeta = null;
   resultTitle.textContent = title;
   resultImage.removeAttribute('src');
@@ -534,25 +575,6 @@ function exportMaskDataUrl() {
   return out.toDataURL('image/png');
 }
 
-function exportOverlayDataUrl() {
-  const out = document.createElement('canvas');
-  out.width = currentImage.naturalWidth;
-  out.height = currentImage.naturalHeight;
-  const outCtx = out.getContext('2d');
-  outCtx.drawImage(currentImage, 0, 0);
-  const gold = document.createElement('canvas');
-  gold.width = out.width;
-  gold.height = out.height;
-  const goldCtx = gold.getContext('2d');
-  goldCtx.fillStyle = '#d4a84f';
-  goldCtx.fillRect(0, 0, gold.width, gold.height);
-  goldCtx.globalCompositeOperation = 'destination-in';
-  goldCtx.drawImage(maskCanvas, 0, 0);
-  outCtx.globalAlpha = 0.38;
-  outCtx.drawImage(gold, 0, 0);
-  return out.toDataURL('image/png');
-}
-
 function maskHasPixels() {
   if (!maskCanvas.width || !maskCanvas.height) return false;
   const data = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data;
@@ -708,12 +730,15 @@ editBtn.addEventListener('click', async () => {
   setBusy(true);
   showResultPending('正在生成修改结果', '正在根据当前原图、选区和修改要求生成新图片。');
   setStatus('busy', 'Editing', '后台模型正在语义重绘，不会直接把选区图层盖到原图上。');
+  const providerLabel = providerSelect.value === 'codex' ? '本地 Codex CLI' : providerSelect.value === 'openai' ? 'OpenAI Images API' : '自定义图片 API';
+  const stopTicker = startPendingTicker('正在生成修改结果', (elapsed) => (
+    `${providerLabel} 正在处理当前原图和黑白选区，已等待 ${elapsed}。本地 Codex 通常需要 3-6 分钟，请不要刷新页面。`
+  ));
   try {
     const data = await api('/api/edit', {
       method: 'POST',
       body: {
         imageUrl: currentImageUrl,
-        overlayDataUrl: exportOverlayDataUrl(),
         maskDataUrl: exportMaskDataUrl(),
         feedback: text,
         provider: providerConfig(),
@@ -723,8 +748,10 @@ editBtn.addEventListener('click', async () => {
     showResult(data.image, '修改结果');
     setStatus('idle', 'Edited', '结果已显示在右侧，原图仍保留在左侧。');
   } catch (error) {
+    showResultError('修改失败', `失败原因：${error.message}`);
     setStatus('error', 'Edit failed', error.message);
   } finally {
+    stopTicker();
     setBusy(false);
     loadRecentOutputs({ showLatest: false }).catch(() => {});
   }
@@ -754,7 +781,13 @@ async function api(url, options = {}) {
     headers: options.body ? { 'content-type': 'application/json' } : undefined,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
-  const data = await response.json();
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`接口返回了非 JSON 内容：${text.slice(0, 180)}`);
+  }
   if (!response.ok) throw new Error(data.error || response.statusText);
   return data;
 }
