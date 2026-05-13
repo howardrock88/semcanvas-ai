@@ -2,6 +2,19 @@
 
 English | [简体中文](./README.md)
 
+![SemCanvas AI social preview](docs/images/social-preview.png)
+
+Select a region, type a short edit, and generate a new complete image. The default provider is the local Codex CLI, with optional OpenAI Images API, nano-banana-style APIs, ComfyUI wrappers, or your own image gateway.
+
+```bash
+git clone https://github.com/howardrock88/semcanvas-ai.git
+cd semcanvas-ai
+npm run setup:local
+npm start
+```
+
+![SemCanvas AI editing flow](docs/images/semcanvas-flow.gif)
+
 Semantic AI image editing canvas. Generate an image, segment it into editable regions, select a subject or rough brush area, describe the change in natural language, and send the edit to a pluggable image model provider.
 
 This repository is a local-first demo/prototype. It is designed to be easy to fork and adapt for GPT Image, nano-banana-style services, ComfyUI wrappers, or your own image generation gateway.

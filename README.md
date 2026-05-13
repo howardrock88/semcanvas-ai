@@ -2,6 +2,19 @@
 
 [English](./README.en.md) | 简体中文
 
+![SemCanvas AI social preview](docs/images/social-preview.png)
+
+选中区域，一句话改图。默认接入本地 Codex CLI，也可以切换到 OpenAI Images API、nano-banana 类接口、ComfyUI wrapper 或你自己的图片生成网关。
+
+```bash
+git clone https://github.com/howardrock88/semcanvas-ai.git
+cd semcanvas-ai
+npm run setup:local
+npm start
+```
+
+![SemCanvas AI editing flow](docs/images/semcanvas-flow.gif)
+
 SemCanvas AI 是一个语义化 AI 图片编辑画布。你可以先生成或上传一张图片，系统把图片分割成可点击的区域；用户选择主体、物体或用画笔粗略圈选后，用自然语言描述修改意见，后台会把原图、选区和修改要求组合成新的生成/编辑 prompt，再调用可插拔的图片模型生成一张新的完整图片。
 
 这个仓库是一个本地优先的 demo/prototype，目标是方便你 fork 后改造成 GPT Image、nano-banana 类服务、ComfyUI 包装器，或者你自己的图片生成网关。
