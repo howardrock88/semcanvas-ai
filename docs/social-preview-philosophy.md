@@ -6,4 +6,4 @@ The right side carries the evidence with a complete before/after object-removal 
 
 The layout stays restrained: one large proof card, one short user instruction, and one quick-start cue. Decorative semantic markers are removed so nothing is mistaken for UI.
 
-A small author badge sits in the top-right safe area with a circular avatar and “作者：肖恩”, intentionally secondary to the product proof card.
+A small author badge sits in the top-right safe area with a circular crop of the original avatar and smaller “作者：肖恩” text, intentionally secondary to the product proof card.
