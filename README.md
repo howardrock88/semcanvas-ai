@@ -1,54 +1,54 @@
 # SemCanvas AI
 
-[English](./README.md) | [简体中文](./README.zh-CN.md)
+[English](./README.en.md) | 简体中文
 
-Semantic AI image editing canvas. Generate an image, segment it into editable regions, select a subject or rough brush area, describe the change in natural language, and send the edit to a pluggable image model provider.
+SemCanvas AI 是一个语义化 AI 图片编辑画布。你可以先生成或上传一张图片，系统把图片分割成可点击的区域；用户选择主体、物体或用画笔粗略圈选后，用自然语言描述修改意见，后台会把原图、选区和修改要求组合成新的生成/编辑 prompt，再调用可插拔的图片模型生成一张新的完整图片。
 
-This repository is a local-first demo/prototype. It is designed to be easy to fork and adapt for GPT Image, nano-banana-style services, ComfyUI wrappers, or your own image generation gateway.
+这个仓库是一个本地优先的 demo/prototype，目标是方便你 fork 后改造成 GPT Image、nano-banana 类服务、ComfyUI 包装器，或者你自己的图片生成网关。
 
-## Features
+## 功能
 
-- Prompt-to-image generation with aspect ratio and style presets.
-- Local image upload and side-by-side original/result comparison.
-- Automatic segmentation with `FastSAM`, full `SAM`, or a lightweight fallback.
-- Optional LLM semantic cleanup for segmentation candidates.
-- Click-to-select segment chips, brush selection, erase, clear, and canvas zoom.
-- Semantic local editing: the mask is treated as a rough object pointer, not as a pasted overlay.
-- Pluggable image providers:
-  - `codex`: local Codex CLI provider for local prototyping.
-  - `openai`: OpenAI Images API provider.
-  - `custom`: generic HTTP provider for nano-banana, ComfyUI wrappers, or your own service.
+- 支持 prompt 生成图片，可选择图片比例和风格预设。
+- 支持本地上传图片，并排展示原图和修改结果。
+- 自动分割图片区域，支持 `FastSAM`、完整 `SAM` 或轻量 fallback。
+- 可选 LLM 语义整理分割结果，让候选区域更接近“主体/背景/物体”这类可编辑对象。
+- 支持点击分割区域、画笔圈选、擦除、清空选区和画布缩放。
+- 语义化局部编辑：选区只作为“你想改哪里”的粗略指针，不会把半透明图层直接盖到原图上。
+- 可插拔图片模型接口：
+  - `codex`：调用本地 Codex CLI，适合本地原型验证。
+  - `openai`：调用 OpenAI Images API。
+  - `custom`：通用 HTTP 接口，适合 nano-banana、ComfyUI wrapper 或自建服务。
 
-## Examples
+## 示例
 
-These are real local demo outputs from the current prototype, not external product mockups.
+下面都是真实本地 demo 输出，不是外部产品 mockup。
 
-### What Semantic Selection Should Prove
+### Semantic Selection 应该证明什么
 
-The important UX is not “write a perfect image prompt.” The intended workflow is:
+这个工具真正要证明的不是“用户会写完美图片 prompt”。理想交互应该是：
 
 ```text
-select a region -> type a short user instruction -> backend expands it with image context, mask, and guardrails
+选中区域 -> 输入一句很短的修改意见 -> 后台结合原图、mask 和约束自动扩写 prompt
 ```
 
-For a fair semantic-editing demo, the user-facing instruction should be short. The selection identifies *what* to edit, and the text describes *how* to change it.
+公平的 semantic editing demo 里，用户侧指令应该很短。选区负责说明“改哪里”，文字只负责说明“怎么改”。
 
-| Selected region | User typed | What the backend should infer |
+| 选中的区域 | 用户输入 | 后台应该推断 |
 | --- | --- | --- |
-| Background around the motorcycle | `背景换成清晨森林山路` | Replace only the selected background, keep the motorcycle stable. |
-| Red robot on the desk | `删掉这个` | Remove the selected object and reconstruct the desk underneath. |
-| Whole flower market scene | `改成雨夜霓虹` | Preserve layout while changing time, weather, light, and reflections. |
-| Cat subject | `换成橘猫` | Edit the selected cat, preserve pose and background. |
+| 摩托车以外的背景 | `背景换成清晨森林山路` | 只替换选中的背景，保留摩托车主体。 |
+| 桌面上的红色机器人 | `删掉这个` | 移除选中的物体，并自然补全下面的桌面。 |
+| 整张花市街景 | `改成雨夜霓虹` | 保留街道布局，改变时间、天气、灯光和地面反射。 |
+| 猫咪主体 | `换成橘猫` | 修改选中的猫，保留姿势和背景。 |
 
-### Short Instruction Semantic Examples
+### 短指令语义编辑示例
 
-These examples were regenerated with short user feedback only. The green overlay on the `Before` image shows the selected mask.
+下面这三组示例已经用短用户反馈重新生成。`Before` 图里的绿色半透明区域表示用户选中的 mask。
 
 ![Short instruction semantic examples](docs/images/example-semantic-short-grid.jpg)
 
-#### Semantic Background Replacement
+#### 短指令背景替换
 
-User typed:
+用户输入：
 
 ```text
 背景换成清晨森林山路
@@ -56,9 +56,9 @@ User typed:
 
 ![Short background replacement before and after](docs/images/example-semantic-short-background-replace.jpg)
 
-#### Semantic Object Removal
+#### 短指令物体移除
 
-User typed:
+用户输入：
 
 ```text
 删掉这个
@@ -66,9 +66,9 @@ User typed:
 
 ![Short object removal before and after](docs/images/example-semantic-short-object-removal.jpg)
 
-#### Semantic Scene Transformation
+#### 短指令场景转换
 
-User typed:
+用户输入：
 
 ```text
 改成雨夜霓虹
@@ -76,129 +76,13 @@ User typed:
 
 ![Short scene transformation before and after](docs/images/example-semantic-short-weather-time-change.jpg)
 
-Some later examples use more explicit stress-test instructions to make README outputs reproducible. They should not be read as the ideal user input.
 
-### App UI
+### 工具界面
 
 ![SemCanvas AI app UI](docs/images/semcanvas-ui.jpg)
 
-### Style Preset Examples
 
-The following examples were created with the local workflow:
-
-```text
-/api/generate -> rough region selection or segment mask -> /api/edit -> docs/images
-```
-
-![Generated style preset examples](docs/images/example-style-grid.jpg)
-
-#### Photorealistic Editorial (`photo`, `4:3`)
-
-Edit instruction:
-
-```text
-把选中的白色陶瓷杯改成深海蓝色釉面杯，保留桌面、光线、背景和摄影构图
-```
-
-![Photorealistic editorial before and after](docs/images/example-style-photo.jpg)
-
-#### Cinematic Still (`cinematic`, `16:9`)
-
-Edit instruction:
-
-```text
-把选中的红色雨伞改成明亮的向日葵黄色，保留雨夜巷子、石板路、倒影和电影感光线
-```
-
-![Cinematic still before and after](docs/images/example-style-cinematic.jpg)
-
-#### Premium Product (`product`, `1:1`)
-
-Edit instruction:
-
-```text
-把选中的白色头戴式耳机改成磨砂黑和深石墨高光，保留底座、阴影、构图和摄影棚光线
-```
-
-![Premium product before and after](docs/images/example-style-product.jpg)
-
-#### Modern Illustration (`illustration`, `4:3`)
-
-Edit instruction:
-
-```text
-只把选中的陶土花盆改成钴蓝色陶瓷花盆，保留绿叶、窗台、构图和现代插画风格
-```
-
-![Modern illustration before and after](docs/images/example-style-illustration.jpg)
-
-#### Anime Concept (`anime`, `16:9`)
-
-Edit instruction:
-
-```text
-把选中的白色机器人改成樱花粉和奶油白配色，保留姿势、比例、霓虹街景和动漫概念风格
-```
-
-![Anime concept before and after](docs/images/example-style-anime.jpg)
-
-### Advanced Edit Examples
-
-These examples are intentionally harder than simple color/material changes. They test rough-mask semantic editing across background replacement, object removal, and global scene transformation.
-
-![Advanced edit examples](docs/images/example-complex-grid.jpg)
-
-#### Background Replacement (`cinematic`, `16:9`)
-
-Edit instruction:
-
-```text
-把选中的城市夜市背景替换成清晨有薄雾的松林山路，保留红色复古摩托车的位置、比例、透视和光影融合
-```
-
-![Background replacement before and after](docs/images/example-complex-background-replace.jpg)
-
-#### Object Removal And Fill (`photo`, `4:3`)
-
-Edit instruction:
-
-```text
-完全移除选中的红色玩具机器人，自然补全下面的木质桌面，保留周围物品、阴影、透视和复杂桌面布局
-```
-
-![Object removal before and after](docs/images/example-complex-object-removal.jpg)
-
-#### Weather And Time Change (`photo`, `16:9`)
-
-Edit instruction:
-
-```text
-把整张白天花市街景转换成雨夜霓虹版本，保留街道布局、摊位位置、自行车、箱子和整体构图
-```
-
-![Weather and time change before and after](docs/images/example-complex-weather-time-change.jpg)
-
-### Region Edit: Dog Coat Color
-
-Edit instruction:
-
-```text
-把这只黑白边牧换成金色边牧，毛发自然，保留姿势、背景和光照
-```
-
-![Dog coat color before and after](docs/images/example-dog-before-after.jpg)
-
-### Region Edit: Cat Color With Background Preserved
-
-Edit instruction:
-
-```text
-把猫咪改成橘色猫，保留姿势、墙面、街道和日落光照
-```
-
-![Cat color before and after](docs/images/example-cat-before-after.jpg)
-
-## Quick Start
+## 快速开始
 
 ```bash
 npm install
@@ -206,31 +90,31 @@ cp .env.example .env
 npm start
 ```
 
-Open:
+打开：
 
 ```text
 http://127.0.0.1:4321
 ```
 
-The default provider is `codex`, which calls your local Codex CLI. You can switch providers in the UI under **模型接口**.
+默认图片模型接口是 `codex`，会调用你本地的 Codex CLI。你也可以在页面里的 **模型接口** 区域切换到 OpenAI 或 Custom HTTP。
 
-## Provider Configuration
+## 模型接口配置
 
-You can configure providers from the UI or environment variables.
+模型接口可以通过页面表单配置，也可以通过环境变量配置。
 
-### 1. Local Codex CLI
+### 1. 本地 Codex CLI
 
 ```bash
 IMAGE_PROVIDER=codex npm start
 ```
 
-Requirements:
+要求：
 
-- Local `codex` CLI is installed and authenticated.
-- Your local Codex setup can generate/edit images.
-- Complex image edits can take several minutes. Use `CODEX_TIMEOUT_MS` if you need a longer local timeout.
+- 本机已经安装并登录 `codex` CLI。
+- 你的本地 Codex 环境可以生成或编辑图片。
+- 复杂图片编辑可能需要几分钟。如果本地调用容易超时，可以调整 `CODEX_TIMEOUT_MS`。
 
-This provider is useful for proof-of-concept work. It is not a stable production image API.
+这个接口适合做 proof-of-concept。本质上它依赖本地 Codex CLI 的能力，不建议当成稳定生产 API 使用。
 
 ### 2. OpenAI Images API
 
@@ -242,18 +126,18 @@ OPENAI_IMAGES_BASE_URL=https://api.openai.com/v1
 npm start
 ```
 
-In the UI, select `OpenAI GPT Image`. You may leave the API key field empty if `OPENAI_API_KEY` is set on the server.
+页面里选择 `OpenAI GPT Image`。如果服务端已经设置 `OPENAI_API_KEY`，页面里的 API key 可以留空。
 
-Notes:
+说明：
 
-- Generation calls `POST /v1/images/generations`.
-- Editing calls `POST /v1/images/edits` with an image and alpha mask.
-- The app normalizes output dimensions after generation/editing, so the comparison canvas stays stable.
-- Check the current OpenAI image model names and parameters in the official docs before production use: https://platform.openai.com/docs/guides/image-generation
+- 生成图片调用 `POST /v1/images/generations`。
+- 编辑图片调用 `POST /v1/images/edits`，会提交原图和 alpha mask。
+- 应用会在生成/编辑后归一化输出尺寸，避免左右对比画布大小不一致。
+- 生产使用前请以 OpenAI 官方文档为准，确认当前可用的图片模型名称和参数：https://platform.openai.com/docs/guides/image-generation
 
 ### 3. Custom HTTP Provider
 
-Use this for nano-banana-style APIs, ComfyUI wrappers, Replicate-style gateways, or a small adapter you write yourself.
+这个接口适合 nano-banana 类 API、ComfyUI wrapper、Replicate 风格网关，或者你自己写的图片生成服务。
 
 ```bash
 IMAGE_PROVIDER=custom
@@ -263,11 +147,11 @@ IMAGE_MODEL=nanobanana2
 npm start
 ```
 
-In the UI, select `Custom HTTP` and fill endpoint/model/key as needed.
+页面里选择 `Custom HTTP`，根据需要填写 endpoint、model、key。
 
-The app sends JSON.
+应用会发送 JSON 请求。
 
-Generate request:
+生成图片请求：
 
 ```json
 {
@@ -280,7 +164,7 @@ Generate request:
 }
 ```
 
-Edit request:
+编辑图片请求：
 
 ```json
 {
@@ -294,7 +178,7 @@ Edit request:
 }
 ```
 
-Supported response shapes:
+支持的返回格式：
 
 ```json
 { "imageDataUrl": "data:image/png;base64,..." }
@@ -312,29 +196,29 @@ Supported response shapes:
 { "path": "/absolute/local/result.png" }
 ```
 
-## Segmentation Setup
+## 分割配置
 
-The app auto-selects segmentation backends in this order:
+应用会按以下顺序自动选择分割后端：
 
 ```text
 SAM checkpoint > FastSAM > lightweight fallback
 ```
 
-FastSAM is recommended for this demo because it is small and practical locally:
+本地 demo 推荐使用 FastSAM，因为模型较小，实际体验更可控：
 
 ```bash
 ./tools/setup_fastsam.sh
 npm start
 ```
 
-Full SAM:
+完整 SAM：
 
 ```bash
 ./tools/setup_sam.sh
 npm start
 ```
 
-Force a backend:
+强制指定后端：
 
 ```bash
 SEGMENT_BACKEND=fastsam npm start
@@ -342,64 +226,66 @@ SEGMENT_BACKEND=sam npm start
 SEGMENT_BACKEND=fallback npm start
 ```
 
-Related environment variables:
+相关环境变量：
 
-- `SAM_PYTHON`: segmentation virtualenv Python, default `.venv-seg/bin/python`
-- `SAM_CHECKPOINT`: SAM checkpoint path, default `models/sam_vit_b_01ec64.pth`
-- `SAM_DEVICE`: default `cpu`
-- `SAM_MAX_DIM`: default `768`
-- `FASTSAM_MODEL`: default `models/FastSAM-s.pt`
-- `FASTSAM_DEVICE`: default follows `SAM_DEVICE`
-- `FASTSAM_MAX_DIM`: default `768`
+- `SAM_PYTHON`：分割虚拟环境 Python，默认 `.venv-seg/bin/python`
+- `SAM_CHECKPOINT`：SAM checkpoint 路径，默认 `models/sam_vit_b_01ec64.pth`
+- `SAM_DEVICE`：默认 `cpu`
+- `SAM_MAX_DIM`：默认 `768`
+- `FASTSAM_MODEL`：默认 `models/FastSAM-s.pt`
+- `FASTSAM_DEVICE`：默认跟随 `SAM_DEVICE`
+- `FASTSAM_MAX_DIM`：默认 `768`
 
-## Usage Flow
+## 使用流程
 
-1. Generate or upload an image.
-2. Click **自动分割**. Keep **LLM 语义整理** enabled if you want semantic cleanup.
-3. Choose **选分割** and click a segment, or use **画选区** / **擦除**.
-4. Type a natural-language edit instruction.
-5. Click **生成修改结果**.
-6. Download the result or set it as the new source image for another edit pass.
+1. 生成或上传一张图片。
+2. 点击 **自动分割**。如果希望候选区域更语义化，可以保持 **LLM 语义整理** 开启。
+3. 选择 **选分割** 并点击某个区域，或者使用 **画选区** / **擦除**。
+4. 输入自然语言修改指令。
+5. 点击 **生成修改结果**。
+6. 下载结果，或者把结果设为新的原图继续编辑。
 
-Example edit prompts:
+修改指令示例：
 
-- `把这只黑白边牧换成金色边牧，毛发自然，保留姿势、背景和光照`
-- `把天空改成日落时的粉橙色云层，保持街道和建筑不变`
-- `把选中的产品换成磨砂黑材质，保留阴影和拍摄角度`
-- `移除墙上的涂鸦，让墙面纹理自然延续`
+- `换成金色边牧`
+- `天空改成日落`
+- `改成磨砂黑`
+- `删掉墙上的涂鸦`
 
-## Project Structure
+## 项目结构
 
 ```text
-public/                 Frontend UI
-docs/images/            README screenshots and real before/after examples
-server.mjs              Local HTTP server and provider orchestration
-tools/                  Python helpers for segmentation, masks, and resizing
-storage/uploads/        Local uploaded/source images, gitignored except .gitkeep
-storage/outputs/        Generated results, gitignored except .gitkeep
-storage/tmp/            Temporary masks/contact sheets, gitignored except .gitkeep
-models/                 Local segmentation model weights, gitignored except .gitkeep
+public/                 前端 UI
+README.md               中文 README（GitHub 默认显示）
+README.en.md            English README
+docs/images/            README 截图和真实 before/after 示例图
+server.mjs              本地 HTTP 服务和模型接口编排
+tools/                  分割、mask、尺寸归一化等 Python 工具
+storage/uploads/        本地上传/源图目录，git 默认忽略，仅保留 .gitkeep
+storage/outputs/        生成结果目录，git 默认忽略，仅保留 .gitkeep
+storage/tmp/            临时 mask/contact sheet 目录，git 默认忽略，仅保留 .gitkeep
+models/                 本地分割模型权重目录，git 默认忽略，仅保留 .gitkeep
 ```
 
-## Development
+## 开发
 
 ```bash
 npm run check
 npm start
 ```
 
-The server intentionally uses `cache-control: no-store` for local frontend iteration.
+本地开发时，服务端会对前端资源使用 `cache-control: no-store`，方便刷新页面立即看到改动。
 
-## Security Notes
+## 安全说明
 
-- This is a local demo. Do not expose it directly to the public internet.
-- API keys entered in the UI are stored in browser `localStorage` for convenience. For shared machines, prefer environment variables.
-- Generated images, uploads, masks, and temporary files stay on disk under `storage/`.
-- Model weights are ignored by git. Download them locally with the setup scripts.
+- 这是本地 demo，不要直接暴露到公网。
+- 页面里输入的 API key 会为了方便存到浏览器 `localStorage`。如果是共享机器，建议改用环境变量。
+- 生成图片、上传图片、mask 和临时文件会保存在 `storage/` 目录下。
+- 模型权重不会提交到 git。需要时通过 setup 脚本在本地下载。
 
-## GitHub Release Checklist
+## GitHub 发布前检查
 
-Before pushing:
+发布前建议执行：
 
 ```bash
 npm run check
@@ -407,15 +293,15 @@ rm -rf storage/tmp/* storage/outputs/*
 find storage/uploads -type f ! -name '.gitkeep' -delete
 ```
 
-Keep sample images only if you have rights to publish them. Large model files should not be committed.
+只有在你确认有权发布示例图片时，才保留样例图。大型模型文件不要提交到仓库。
 
-## Limitations
+## 当前限制
 
-- The lightweight fallback segmentation is only for interaction testing. Use FastSAM or SAM for real object masks.
-- LLM semantic cleanup currently uses the local Codex CLI path. If you want semantic cleanup through another model, adapt `enhanceSegmentsWithCodex` in `server.mjs`.
-- Different image providers use different mask semantics. The OpenAI provider converts the UI's white-selected mask into an alpha mask before calling the Images API.
-- Custom provider behavior depends on your adapter returning a supported image field.
+- 轻量 fallback 分割只适合测试交互。真实对象级 mask 建议使用 FastSAM 或 SAM。
+- LLM 语义整理目前走本地 Codex CLI。如果你希望接入其他模型，需要改 `server.mjs` 里的 `enhanceSegmentsWithCodex`。
+- 不同图片模型的 mask 语义不同。OpenAI provider 会把 UI 中“白色选区”的 mask 转成 alpha mask 后再调用 Images API。
+- Custom provider 的效果取决于你的 adapter 是否按约定返回支持的图片字段。
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+MIT。见 [LICENSE](./LICENSE)。
