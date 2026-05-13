@@ -1,6 +1,6 @@
 # SemCanvas AI
 
-English | [简体中文](./README.md)
+English | [简体中文](./README.md) | [Changelog](./CHANGELOG.md)
 
 ![SemCanvas AI social preview](docs/images/social-preview.png)
 
