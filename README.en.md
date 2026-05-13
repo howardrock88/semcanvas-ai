@@ -24,6 +24,7 @@ This repository is a local-first demo/prototype. It is designed to be easy to fo
 - Prompt-to-image generation with aspect ratio and style presets.
 - Local image upload and side-by-side original/result comparison.
 - Automatic segmentation with `FastSAM`, full `SAM`, or a lightweight fallback.
+- Extra title/text region detection; logo text is kept with the graphic mark as one `品牌标识` region when possible.
 - Optional LLM semantic cleanup for segmentation candidates.
 - Click-to-select segment chips, brush selection, erase, clear, and canvas zoom.
 - Semantic local editing: the mask is treated as a rough object pointer, not as a pasted overlay.

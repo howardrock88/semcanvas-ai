@@ -812,6 +812,7 @@ async function segmentImage(imagePath, options = {}) {
   const result = await spawnSimple(runner.command, runner.args(imagePath, outDir, options), { cwd: ROOT, timeoutMs: runner.timeoutMs });
   if (result.code !== 0) throw new Error(`Segmentation failed: ${result.stderr || result.stdout}`);
   let payload = JSON.parse(result.stdout.trim());
+  payload = await appendTextSegments(imagePath, outDir, payload);
   if (options.semantic) {
     payload = await enhanceSegmentsWithCodex(imagePath, outDir, payload);
   }
@@ -832,6 +833,100 @@ async function segmentImage(imagePath, options = {}) {
       previewUrl: `${baseUrl}/${encodeURIComponent(segment.previewFile)}`,
     })),
   };
+}
+
+async function appendTextSegments(imagePath, outDir, payload) {
+  const result = await spawnSimple('python3', [
+    path.join(ROOT, 'tools', 'detect_text_regions.py'),
+    imagePath,
+    outDir,
+    '--max-regions',
+    '4',
+  ], { cwd: ROOT, timeoutMs: 60_000 });
+
+  if (result.code !== 0) {
+    return {
+      ...payload,
+      textDetection: { enabled: true, error: result.stderr || result.stdout },
+    };
+  }
+
+  let textPayload;
+  try {
+    textPayload = JSON.parse(result.stdout.trim());
+  } catch (error) {
+    return {
+      ...payload,
+      textDetection: { enabled: true, error: `Could not parse text detection output: ${error.message}` },
+    };
+  }
+
+  const textSegments = Array.isArray(textPayload.segments) ? textPayload.segments : [];
+  if (!textSegments.length) {
+    return {
+      ...payload,
+      textDetection: { enabled: true, count: 0 },
+    };
+  }
+
+  const existing = Array.isArray(payload.segments) ? payload.segments : [];
+  const filteredTextSegments = textSegments.filter((segment) => !existing.some((other) => isDuplicateTextSegment(segment, other)));
+  if (!filteredTextSegments.length) {
+    return {
+      ...payload,
+      textDetection: { enabled: true, count: 0, skipped: textSegments.length },
+    };
+  }
+  const filteredExisting = existing.filter((segment) => !filteredTextSegments.some((textSegment) => isFragmentInsideTextSegment(segment, textSegment)));
+
+  return {
+    ...payload,
+    backend: `${payload.backend}+text`,
+    segments: [...filteredTextSegments, ...filteredExisting],
+    textDetection: { enabled: true, count: filteredTextSegments.length, removedFragments: existing.length - filteredExisting.length },
+  };
+}
+
+function isDuplicateTextSegment(a, b) {
+  const otherLabel = String(b?.label || '').toLowerCase();
+  if (otherLabel.includes('背景') || Number(b?.areaRatio || 0) > 0.42) return false;
+  const ab = Array.isArray(a?.bbox) ? a.bbox : null;
+  const bb = Array.isArray(b?.bbox) ? b.bbox : null;
+  if (!ab || !bb) return false;
+  const x0 = Math.max(Number(ab[0]), Number(bb[0]));
+  const y0 = Math.max(Number(ab[1]), Number(bb[1]));
+  const x1 = Math.min(Number(ab[2]), Number(bb[2]));
+  const y1 = Math.min(Number(ab[3]), Number(bb[3]));
+  const inter = Math.max(0, x1 - x0) * Math.max(0, y1 - y0);
+  if (!inter) return false;
+  const areaA = Math.max(0, Number(ab[2]) - Number(ab[0])) * Math.max(0, Number(ab[3]) - Number(ab[1]));
+  const areaB = Math.max(0, Number(bb[2]) - Number(bb[0])) * Math.max(0, Number(bb[3]) - Number(bb[1]));
+  const union = areaA + areaB - inter;
+  const iou = inter / Math.max(union, 1e-9);
+  const containment = inter / Math.max(Math.min(areaA, areaB), 1e-9);
+  const sizeRatio = Math.min(areaA, areaB) / Math.max(areaA, areaB, 1e-9);
+  return iou > 0.60 || (containment > 0.90 && sizeRatio > 0.65);
+}
+
+function isFragmentInsideTextSegment(segment, textSegment) {
+  const otherLabel = String(segment?.label || '').toLowerCase();
+  if (otherLabel.includes('背景') || otherLabel.includes('background')) return false;
+  const areaRatio = Number(segment?.areaRatio || 0);
+  const textAreaRatio = Number(textSegment?.areaRatio || 0);
+  if (!Number.isFinite(areaRatio) || !Number.isFinite(textAreaRatio)) return false;
+  if (areaRatio > Math.max(0.06, textAreaRatio * 0.85)) return false;
+  const ab = Array.isArray(segment?.bbox) ? segment.bbox : null;
+  const tb = Array.isArray(textSegment?.bbox) ? textSegment.bbox : null;
+  if (!ab || !tb) return false;
+  const x0 = Math.max(Number(ab[0]), Number(tb[0]));
+  const y0 = Math.max(Number(ab[1]), Number(tb[1]));
+  const x1 = Math.min(Number(ab[2]), Number(tb[2]));
+  const y1 = Math.min(Number(ab[3]), Number(tb[3]));
+  const inter = Math.max(0, x1 - x0) * Math.max(0, y1 - y0);
+  if (!inter) return false;
+  const areaA = Math.max(0, Number(ab[2]) - Number(ab[0])) * Math.max(0, Number(ab[3]) - Number(ab[1]));
+  const containment = inter / Math.max(areaA, 1e-9);
+  return containment > 0.82;
 }
 
 function selectSegmentationRunner() {
@@ -951,6 +1046,8 @@ async function enhanceSegmentsWithCodex(imagePath, outDir, payload) {
     'Task:',
     '- Select the most useful semantic regions a user would want to click for image editing.',
     '- Prefer coherent real-world objects and large scene regions: animals, people, products, walls, sky, road, water, foreground, background.',
+    '- Always keep meaningful text candidates when present, especially title text, captions, signs, posters, UI text, and labels. Use labels like 标题文字, 文字区域, or 招牌文字.',
+    '- If text is part of a logo or brand mark, do not split out the letters as standalone text. Keep/select it as one 品牌标识 region together with the nearby icon or mark.',
     '- Prefer a complete object mask over small fragments.',
     '- Remove duplicate masks, tiny accidental fragments, and masks that only cover random texture.',
     '- You may merge multiple source ids when together they form one useful region.',
