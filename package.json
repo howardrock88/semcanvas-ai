@@ -5,7 +5,17 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check public/app.js && python3 -m py_compile tools/*.py"
+    "check": "node --check server.mjs && node --check public/app.js && python3 -m py_compile tools/*.py",
+    "setup:local": "bash tools/setup_local.sh",
+    "setup:fastsam": "bash tools/setup_fastsam.sh",
+    "setup:sam": "bash tools/setup_sam.sh",
+    "service:install": "bash tools/service_macos.sh install",
+    "service:start": "bash tools/service_macos.sh start",
+    "service:stop": "bash tools/service_macos.sh stop",
+    "service:restart": "bash tools/service_macos.sh restart",
+    "service:status": "bash tools/service_macos.sh status",
+    "service:logs": "bash tools/service_macos.sh logs",
+    "service:uninstall": "bash tools/service_macos.sh uninstall"
   },
   "engines": {
     "node": ">=18"

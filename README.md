@@ -82,11 +82,12 @@ SemCanvas AI 是一个语义化 AI 图片编辑画布。你可以先生成或上
 ![SemCanvas AI app UI](docs/images/semcanvas-ui.jpg)
 
 
-## 快速开始
+## 快速开始：默认本地 Codex CLI
 
 ```bash
-npm install
-cp .env.example .env
+git clone https://github.com/howardrock88/semcanvas-ai.git
+cd semcanvas-ai
+npm run setup:local
 npm start
 ```
 
@@ -96,16 +97,55 @@ npm start
 http://127.0.0.1:4321
 ```
 
-默认图片模型接口是 `codex`，会调用你本地的 Codex CLI。你也可以在页面里的 **模型接口** 区域切换到 OpenAI 或 Custom HTTP。
+默认配置会调用本机 Codex CLI，不需要项目作者提供 API key。用户需要自己在本机安装并登录 Codex：
+
+```bash
+codex --version
+codex
+```
+
+如果你不想执行完整初始化，也可以手动分步安装：
+
+```bash
+npm install
+cp .env.example .env
+npm run setup:fastsam
+npm start
+```
+
+`npm run setup:fastsam` 会创建本地 Python 虚拟环境、安装 FastSAM 依赖并下载模型权重。用户不需要自己去搜索模型下载地址。
+
+## macOS 后台服务
+
+如果希望像本机 demo 一样后台常驻、退出自动重启：
+
+```bash
+npm run service:install
+```
+
+常用命令：
+
+```bash
+npm run service:status
+npm run service:restart
+npm run service:stop
+npm run service:logs
+npm run service:uninstall
+```
+
+服务脚本会根据当前项目路径动态生成 `launchd` 配置，默认 label 是 `ai.semcanvas.local`。服务会读取项目根目录下的 `.env`，所以改 API 配置后执行 `npm run service:restart` 即可生效。
 
 ## 模型接口配置
 
-模型接口可以通过页面表单配置，也可以通过环境变量配置。
+模型接口可以通过页面表单配置，也可以通过 `.env` 或系统环境变量配置。系统环境变量优先级高于 `.env`。
 
 ### 1. 本地 Codex CLI
 
+`.env.example` 默认就是这个配置：
+
 ```bash
-IMAGE_PROVIDER=codex npm start
+IMAGE_PROVIDER=codex
+CODEX_TIMEOUT_MS=720000
 ```
 
 要求：
@@ -118,15 +158,24 @@ IMAGE_PROVIDER=codex npm start
 
 ### 2. OpenAI Images API
 
+编辑 `.env`：
+
 ```bash
 OPENAI_API_KEY=sk-...
 IMAGE_PROVIDER=openai
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 OPENAI_IMAGES_BASE_URL=https://api.openai.com/v1
-npm start
 ```
 
-页面里选择 `OpenAI GPT Image`。如果服务端已经设置 `OPENAI_API_KEY`，页面里的 API key 可以留空。
+然后重启服务：
+
+```bash
+npm start
+# 或
+npm run service:restart
+```
+
+页面里也可以选择 `OpenAI GPT Image` 并临时填写 API key。如果服务端已经设置 `OPENAI_API_KEY`，页面里的 API key 可以留空。
 
 说明：
 
@@ -139,15 +188,16 @@ npm start
 
 这个接口适合 nano-banana 类 API、ComfyUI wrapper、Replicate 风格网关，或者你自己写的图片生成服务。
 
+编辑 `.env`：
+
 ```bash
 IMAGE_PROVIDER=custom
 IMAGE_API_ENDPOINT=http://127.0.0.1:8787/image
 IMAGE_API_KEY=optional-token
 IMAGE_MODEL=nanobanana2
-npm start
 ```
 
-页面里选择 `Custom HTTP`，根据需要填写 endpoint、model、key。
+然后重启服务。页面里也可以选择 `Custom HTTP`，根据需要临时填写 endpoint、model、key。
 
 应用会发送 JSON 请求。
 
@@ -207,14 +257,14 @@ SAM checkpoint > FastSAM > lightweight fallback
 本地 demo 推荐使用 FastSAM，因为模型较小，实际体验更可控：
 
 ```bash
-./tools/setup_fastsam.sh
+npm run setup:fastsam
 npm start
 ```
 
 完整 SAM：
 
 ```bash
-./tools/setup_sam.sh
+npm run setup:sam
 npm start
 ```
 
@@ -260,7 +310,7 @@ README.md               中文 README（GitHub 默认显示）
 README.en.md            English README
 docs/images/            README 截图和真实 before/after 示例图
 server.mjs              本地 HTTP 服务和模型接口编排
-tools/                  分割、mask、尺寸归一化等 Python 工具
+tools/                  分割、mask、尺寸归一化、本地初始化和 macOS 服务脚本
 storage/uploads/        本地上传/源图目录，git 默认忽略，仅保留 .gitkeep
 storage/outputs/        生成结果目录，git 默认忽略，仅保留 .gitkeep
 storage/tmp/            临时 mask/contact sheet 目录，git 默认忽略，仅保留 .gitkeep

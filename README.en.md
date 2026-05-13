@@ -82,11 +82,12 @@ User typed:
 ![SemCanvas AI app UI](docs/images/semcanvas-ui.jpg)
 
 
-## Quick Start
+## Quick Start: Default Local Codex CLI
 
 ```bash
-npm install
-cp .env.example .env
+git clone https://github.com/howardrock88/semcanvas-ai.git
+cd semcanvas-ai
+npm run setup:local
 npm start
 ```
 
@@ -96,16 +97,55 @@ Open:
 http://127.0.0.1:4321
 ```
 
-The default provider is `codex`, which calls your local Codex CLI. You can switch providers in the UI under **模型接口**.
+The default configuration calls the user's local Codex CLI. The project does not ship an API key. Each user must install and log in to Codex locally:
+
+```bash
+codex --version
+codex
+```
+
+If you prefer manual setup:
+
+```bash
+npm install
+cp .env.example .env
+npm run setup:fastsam
+npm start
+```
+
+`npm run setup:fastsam` creates the local Python virtualenv, installs FastSAM dependencies, and downloads the model weights. Users do not need to search for model download links.
+
+## macOS Background Service
+
+To run the app like the local demo, with automatic restart in the background:
+
+```bash
+npm run service:install
+```
+
+Useful commands:
+
+```bash
+npm run service:status
+npm run service:restart
+npm run service:stop
+npm run service:logs
+npm run service:uninstall
+```
+
+The service script generates a `launchd` plist for the current project path. The default label is `ai.semcanvas.local`. The service reads `.env` from the project root, so run `npm run service:restart` after changing API configuration.
 
 ## Provider Configuration
 
-You can configure providers from the UI or environment variables.
+You can configure providers from the UI, `.env`, or system environment variables. System environment variables override `.env`.
 
 ### 1. Local Codex CLI
 
+`.env.example` defaults to this provider:
+
 ```bash
-IMAGE_PROVIDER=codex npm start
+IMAGE_PROVIDER=codex
+CODEX_TIMEOUT_MS=720000
 ```
 
 Requirements:
@@ -118,15 +158,24 @@ This provider is useful for proof-of-concept work. It is not a stable production
 
 ### 2. OpenAI Images API
 
+Edit `.env`:
+
 ```bash
 OPENAI_API_KEY=sk-...
 IMAGE_PROVIDER=openai
 OPENAI_IMAGE_MODEL=gpt-image-1.5
 OPENAI_IMAGES_BASE_URL=https://api.openai.com/v1
-npm start
 ```
 
-In the UI, select `OpenAI GPT Image`. You may leave the API key field empty if `OPENAI_API_KEY` is set on the server.
+Then restart the server:
+
+```bash
+npm start
+# or
+npm run service:restart
+```
+
+In the UI, you can also select `OpenAI GPT Image` and temporarily fill in the API key. You may leave the API key field empty if `OPENAI_API_KEY` is set on the server.
 
 Notes:
 
@@ -139,15 +188,16 @@ Notes:
 
 Use this for nano-banana-style APIs, ComfyUI wrappers, Replicate-style gateways, or a small adapter you write yourself.
 
+Edit `.env`:
+
 ```bash
 IMAGE_PROVIDER=custom
 IMAGE_API_ENDPOINT=http://127.0.0.1:8787/image
 IMAGE_API_KEY=optional-token
 IMAGE_MODEL=nanobanana2
-npm start
 ```
 
-In the UI, select `Custom HTTP` and fill endpoint/model/key as needed.
+Then restart the server. In the UI, you can also select `Custom HTTP` and temporarily fill endpoint/model/key as needed.
 
 The app sends JSON.
 
@@ -207,14 +257,14 @@ SAM checkpoint > FastSAM > lightweight fallback
 FastSAM is recommended for this demo because it is small and practical locally:
 
 ```bash
-./tools/setup_fastsam.sh
+npm run setup:fastsam
 npm start
 ```
 
 Full SAM:
 
 ```bash
-./tools/setup_sam.sh
+npm run setup:sam
 npm start
 ```
 
@@ -258,7 +308,7 @@ Example short edit instructions:
 public/                 Frontend UI
 docs/images/            README screenshots and real before/after examples
 server.mjs              Local HTTP server and provider orchestration
-tools/                  Python helpers for segmentation, masks, and resizing
+tools/                  Python helpers plus local setup and macOS service scripts
 storage/uploads/        Local uploaded/source images, gitignored except .gitkeep
 storage/outputs/        Generated results, gitignored except .gitkeep
 storage/tmp/            Temporary masks/contact sheets, gitignored except .gitkeep

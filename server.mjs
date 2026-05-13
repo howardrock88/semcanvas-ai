@@ -1,12 +1,14 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.dirname(__filename);
+loadEnvFile(path.join(ROOT, '.env'));
+
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const STORAGE_DIR = path.join(ROOT, 'storage');
 const UPLOAD_DIR = path.join(STORAGE_DIR, 'uploads');
@@ -59,6 +61,30 @@ const STYLE_PRESETS = {
     prompt: 'high-quality anime concept art, clean linework, expressive lighting, detailed background, polished character design',
   },
 };
+
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) return;
+  const content = readFileSync(filePath, 'utf8');
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const match = line.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key] !== undefined) continue;
+    process.env[key] = parseEnvValue(rawValue.trim());
+  }
+}
+
+function parseEnvValue(value) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
 
 await Promise.all([mkdir(UPLOAD_DIR, { recursive: true }), mkdir(OUTPUT_DIR, { recursive: true }), mkdir(TMP_DIR, { recursive: true })]);
 await seedLocalSamples();
